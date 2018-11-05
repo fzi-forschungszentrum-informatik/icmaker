@@ -1,29 +1,30 @@
 # this is for emacs file handling -*- mode: cmake; indent-tabs-mode: nil -*-
 
 # -- BEGIN LICENSE BLOCK ----------------------------------------------
-# Copyright (c) 2017, FZI Forschungszentrum Informatik
-# All rights reserved.
+# Copyright (c) 2018, FZI Forschungszentrum Informatik
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
+# Redistribution and use in source and binary forms, with or without modification, are permitted
+# provided that the following conditions are met:
 #
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
+# 1. Redistributions of source code must retain the above copyright notice, this list of conditions
+#    and the following disclaimer.
 #
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of
+#    conditions and the following disclaimer in the documentation and/or other materials provided
+#    with the distribution.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used to
+#    endorse or promote products derived from this software without specific prior written
+#    permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+# WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # -- END LICENSE BLOCK ------------------------------------------------
 
 # ===================================================
@@ -162,6 +163,13 @@ MACRO(ICMAKER_ADD_QT_UI_FILES)
     QT4_WRAP_UI(__ui_headers ${__ui_files})
     LIST(APPEND ${icmaker_target}_GENERATED_HEADERS ${__ui_headers})
   ENDIF (QT4_FOUND)
+  IF (QT5_FOUND)
+    PARSE_ARGUMENTS(ADD_UIS "" "" ${ARGN})
+    CAR(__ui_files "${ADD_UIS_DEFAULT_ARGS}")
+    LIST(APPEND ${icmaker_target}_QT_UI_FILES ${__ui_files})
+    QT5_WRAP_UI(__ui_headers ${__ui_files})
+    LIST(APPEND ${icmaker_target}_GENERATED_HEADERS ${__ui_headers})
+  ENDIF (QT5_FOUND)
 ENDMACRO()
 
 # ----------------------------------------------------------------------------
@@ -502,7 +510,11 @@ MACRO(ICMAKER_BUILD_LIBRARY_IN_SUBDIR _subdir_lib _subdir_bin _sources)
     # See if there are CUDA object files to be added
     IF(CUDA_FOUND AND ${icmaker_target}_CUDA_FILES)
       SET(__cuda_generated_files)
-      CUDA_WRAP_SRCS(${icmaker_target}_CUDA_TARGET OBJ __cuda_generated_files ${${icmaker_target}_CUDA_FILES} OPTIONS ${ICMAKER_CUDA_CPPDEFINES})
+      IF(${CMAKE_VERSION} VERSION_LESS "3.6.2") 
+        CUDA_WRAP_SRCS(${icmaker_target}_CUDA_TARGET OBJ __cuda_generated_files ${${icmaker_target}_CUDA_FILES} OPTIONS ${ICMAKER_CUDA_CPPDEFINES})
+      ELSE()
+        CUDA_WRAP_SRCS(${icmaker_target}_CUDA_TARGET OBJ __cuda_generated_files ${${icmaker_target}_CUDA_FILES} OPTIONS ${ICMAKER_CUDA_CPPDEFINES} PHONY)
+      ENDIF()
       LIST(APPEND ${icmaker_target}_AGGREGATE_SOURCES ${__cuda_generated_files})
     ENDIF()
 
@@ -677,7 +689,11 @@ MACRO(ICMAKER_BUILD_SWIG_MODULES)
 
           include_directories(${${icmaker_target}_AGGREGATE_INCLUDE_DIRS})
 
-          SWIG_ADD_MODULE(${icmaker_target} ${_module} ${${icmaker_target_parent}_SWIG_FILE})
+          IF(${CMAKE_VERSION} VERSION_LESS "3.8")
+            SWIG_ADD_MODULE(${icmaker_target} ${_module} ${${icmaker_target_parent}_SWIG_FILE})
+          ELSE()
+            SWIG_ADD_LIBRARY(${icmaker_target} LANGUAGE ${_module} SOURCES ${${icmaker_target_parent}_SWIG_FILE})
+          ENDIF()
 
           SWIG_LINK_LIBRARIES(${icmaker_target} ${${icmaker_target}_AGGREGATE_TARGET_LINK_LIBRARIES})
 
@@ -829,7 +845,11 @@ MACRO(ICMAKER_BUILD_PROGRAM_INTERNAL)
     # See if there are CUDA object files to be added
     IF(CUDA_FOUND AND ${icmaker_target}_CUDA_FILES)
       SET(__cuda_generated_files)
-      CUDA_WRAP_SRCS(${icmaker_target}_CUDA_TARGET OBJ __cuda_generated_files ${${icmaker_target}_CUDA_FILES} OPTIONS ${ICMAKER_CUDA_CPPDEFINES})
+      IF(${CMAKE_VERSION} VERSION_LESS "3.6.2") 
+        CUDA_WRAP_SRCS(${icmaker_target}_CUDA_TARGET OBJ __cuda_generated_files ${${icmaker_target}_CUDA_FILES} OPTIONS ${ICMAKER_CUDA_CPPDEFINES})
+      ELSE()
+        CUDA_WRAP_SRCS(${icmaker_target}_CUDA_TARGET OBJ __cuda_generated_files ${${icmaker_target}_CUDA_FILES} OPTIONS ${ICMAKER_CUDA_CPPDEFINES} PHONY)
+      ENDIF()
       LIST(APPEND ${icmaker_target}_GENERATED_CUDA_OBJS ${__cuda_generated_files})
     ENDIF()
 
